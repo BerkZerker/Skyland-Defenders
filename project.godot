@@ -16,7 +16,8 @@ config/features=PackedStringArray("4.3")
 
 [display]
 
-window/size/resizable=false
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
 
 [gd_project]
 

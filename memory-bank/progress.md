@@ -9,6 +9,10 @@ Project is in initial setup phase, preparing for MVP development.
 - Feature list documentation
 - Memory bank establishment
 - Implementation plan creation
+- Enemy Movement & Pathfinding implementation
+  - Basic A* pathfinding system
+  - Enemy path following
+  - Path recalculation
 
 ## In Progress
 ### Defender Placement System (Next Up)
@@ -18,35 +22,30 @@ Project is in initial setup phase, preparing for MVP development.
 - [ ] Placement mechanics
 
 ## Pending Implementation
-1. Enemy Movement & Pathfinding
-   - [ ] Basic pathfinding
-   - [ ] Enemy movement
-   - [ ] Path recalculation
+1. Defender Attacking Mechanics
+    - [ ] Targeting system
+    - [ ] Attack mechanics
+    - [ ] Cooldown system
 
-2. Defender Attacking Mechanics
-   - [ ] Targeting system
-   - [ ] Attack mechanics
-   - [ ] Cooldown system
+2. Enemy Attacking Mechanics
+    - [ ] Range detection
+    - [ ] Attack system
+    - [ ] Damage calculation
 
-3. Enemy Attacking Mechanics
-   - [ ] Range detection
-   - [ ] Attack system
-   - [ ] Damage calculation
+3. Resource System
+    - [ ] Resource tracking
+    - [ ] Resource generation
+    - [ ] Cost system
 
-4. Resource System
-   - [ ] Resource tracking
-   - [ ] Resource generation
-   - [ ] Cost system
+4. Game Loop
+    - [ ] Wave system
+    - [ ] Victory conditions
+    - [ ] Defeat conditions
 
-5. Game Loop
-   - [ ] Wave system
-   - [ ] Victory conditions
-   - [ ] Defeat conditions
-
-6. Basic UI
-   - [ ] Control buttons
-   - [ ] Resource display
-   - [ ] Health indicators
+5. Basic UI
+    - [ ] Control buttons
+    - [ ] Resource display
+    - [ ] Health indicators
 
 ## Known Issues
 None at this stage - development not yet started.

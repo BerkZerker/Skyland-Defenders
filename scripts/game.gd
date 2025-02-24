@@ -10,6 +10,8 @@ var defender_template: Node2D = null
 # Preload defender scene
 @onready var defender_scene = preload("res://scenes/defender.tscn")
 @onready var grid_system = $GridSystem
+@onready var pathfinding = $Pathfinding
+@onready var wave_system = $WaveSystem
 @onready var resource_label = $UI/TopPanel/ResourceLabel
 @onready var wave_label = $UI/TopPanel/WaveLabel
 
@@ -19,11 +21,23 @@ func _ready() -> void:
 		defender_template.queue_free()
 		defender_template = null
 		placing_defender = false
-
+	
+	# Initialize pathfinding
+	if pathfinding and grid_system:
+		print("Game: Initializing pathfinding system")
+		pathfinding.setup(grid_system)
+	else:
+		push_error("Game: Missing pathfinding or grid system")
+	
+	# Verify wave system
+	if not wave_system:
+		push_error("Game: Wave system not found")
+	
 	initialize_game()
 	update_ui()
 
 func initialize_game() -> void:
+	print("Game: Initializing game state")
 	current_resources = 100
 	current_wave = 0
 	is_wave_active = false
@@ -92,21 +106,25 @@ func try_place_defender(touch_position: Vector2) -> void:
 			defender.is_placed = true
 			update_ui()
 
-	# Clean up template whether placement was successful or not
-	defender_template.queue_free()
-	defender_template = null
-	placing_defender = false
+		# Clean up template whether placement was successful or not
+		defender_template.queue_free()
+		defender_template = null
+		placing_defender = false
 
 func start_wave() -> void:
+	print("Game: Attempting to start wave")
 	if is_wave_active:
+		print("Game: Wave already active, ignoring start request")
 		return
 
 	current_wave += 1
 	is_wave_active = true
-	wave_label.text = "Wave: " + str(current_wave)
+	print("Game: Starting wave " + str(current_wave))
 	emit_signal("wave_started", current_wave)
+	update_ui()
 
 func end_wave() -> void:
+	print("Game: Ending wave " + str(current_wave))
 	is_wave_active = false
 	emit_signal("wave_ended", current_wave)
 
@@ -119,8 +137,10 @@ func _on_defender_placed(cost: int) -> void:
 	update_ui()
 
 func update_ui() -> void:
-	resource_label.text = "Resources: " + str(current_resources)
-	wave_label.text = "Wave: " + str(current_wave)
+	if resource_label:
+		resource_label.text = "Resources: " + str(current_resources)
+	if wave_label:
+		wave_label.text = "Wave: " + str(current_wave)
 
 # Signals
 signal wave_started(wave_number)

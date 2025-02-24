@@ -18,7 +18,11 @@ var spawn_points: Array[Node] = []
 
 func _ready() -> void:
     # Connect to game signals
-    game.connect("wave_started", _on_wave_started)
+    if game:
+        if not game.wave_started.is_connected(_on_wave_started):
+            game.connect("wave_started", _on_wave_started)
+    else:
+        push_error("Wave System: Game node not found")
     
     # Get spawn points
     for child in spawn_points_node.get_children():
@@ -26,16 +30,23 @@ func _ready() -> void:
             spawn_points.append(child)
     
     if spawn_points.is_empty():
-        push_error("No spawn points found in SpawnPoints node")
+        push_error("Wave System: No spawn points found in SpawnPoints node")
 
 func start_wave() -> void:
+    print("Wave System: Starting wave")
     if is_wave_active:
         return
-        
+    
+    if not enemy_scene:
+        push_error("Wave System: Enemy scene not loaded")
+        return
+    
     current_wave += 1
     enemies_spawned = 0
     enemies_remaining = enemies_per_wave + (current_wave - 1) * 2
     is_wave_active = true
+    
+    print("Wave System: Wave " + str(current_wave) + " started, spawning " + str(enemies_remaining) + " enemies")
     
     # Start spawning enemies
     spawn_next_enemy()
@@ -46,9 +57,11 @@ func spawn_next_enemy() -> void:
         return
 
     if spawn_points.is_empty():
-        push_error("No spawn points set for wave system")
+        push_error("Wave System: No spawn points set for wave system")
         return
 
+    print("Wave System: Spawning enemy " + str(enemies_spawned + 1) + "/" + str(enemies_remaining))
+    
     var spawn_point = spawn_points[randi() % spawn_points.size()]
     var enemy = enemy_scene.instantiate()
     add_child(enemy)
@@ -64,14 +77,17 @@ func spawn_next_enemy() -> void:
 
 func check_wave_completion() -> void:
     if enemies_spawned >= enemies_remaining and enemies_remaining <= 0:
+        print("Wave System: Wave completed")
         end_wave()
 
 func _on_wave_started(wave_number: int) -> void:
+    print("Wave System: Received wave_started signal for wave " + str(wave_number))
     current_wave = wave_number
     start_wave()
 
 func _on_enemy_died() -> void:
     enemies_remaining -= 1
+    print("Wave System: Enemy died, " + str(enemies_remaining) + " enemies remaining")
     check_wave_completion()
 
 func end_wave() -> void:

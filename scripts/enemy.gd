@@ -11,8 +11,6 @@ extends CharacterBody2D
 var current_health: float = max_health
 var can_attack: bool = true
 var current_target: Node2D = null
-var current_path: Array = []
-var path_index: int = 0
 
 # Node references
 @onready var attack_area: Area2D = $AttackArea
@@ -21,23 +19,33 @@ var path_index: int = 0
 func _ready() -> void:
 	current_health = max_health
 	add_to_group("enemies")
+	find_closest_defender()
 
-func _physics_process(_delta: float) -> void:
-	if current_path.size() > 0 and path_index < current_path.size():
-		var target_position = current_path[path_index]
-		var direction = (target_position - position).normalized()
-		
-		velocity = direction * movement_speed
-		move_and_slide()
-		
-		if position.distance_to(target_position) < 5:
-			path_index += 1
-	elif current_target and can_attack:
-		attack_target()
+func _physics_process(delta: float) -> void:
+	if current_target:
+		if position.distance_to(current_target.position) > attack_range:
+			# Move towards target
+			var direction = (current_target.position - position).normalized()
+			velocity = direction * movement_speed
+			move_and_slide()
+		elif can_attack:
+			attack_target()
+	else:
+		find_closest_defender()
 
-func set_path(new_path: Array) -> void:
-	current_path = new_path
-	path_index = 0
+func find_closest_defender() -> void:
+	var defenders = get_tree().get_nodes_in_group("defenders")
+	if defenders.size() > 0:
+		var closest_defender = null
+		var closest_distance = INF
+		
+		for defender in defenders:
+			var distance = position.distance_to(defender.position)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_defender = defender
+		
+		current_target = closest_defender
 
 func take_damage(amount: float) -> void:
 	current_health -= amount
@@ -45,19 +53,18 @@ func take_damage(amount: float) -> void:
 		die()
 
 func die() -> void:
-	# Emit signal for resource generation
 	emit_signal("enemy_died")
 	queue_free()
 
 func attack_target() -> void:
 	if not current_target:
 		return
-
+		
 	can_attack = false
 	# Apply damage to target
 	if current_target.has_method("take_damage"):
 		current_target.take_damage(attack_damage)
-
+	
 	# Start cooldown timer
 	get_tree().create_timer(attack_cooldown).timeout.connect(
 		func(): can_attack = true
@@ -66,11 +73,11 @@ func attack_target() -> void:
 func _on_attack_area_area_entered(area: Area2D) -> void:
 	if area.get_parent().is_in_group("defenders"):
 		current_target = area.get_parent()
-		current_path.clear()
 
 func _on_attack_area_area_exited(area: Area2D) -> void:
 	if area.get_parent() == current_target:
 		current_target = null
+		find_closest_defender()
 
 # Signals
 signal enemy_died

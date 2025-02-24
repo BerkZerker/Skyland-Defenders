@@ -1,14 +1,17 @@
-[gd_scene load_steps=4 format=3 uid="uid://b6x41q6c5q37x"]
+[gd_scene load_steps=5 format=3 uid="uid://b6x41q6c5q37x"]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_76dmx"]
 [ext_resource type="Script" path="res://scripts/grid_system.gd" id="2_u4k2b"]
 [ext_resource type="Script" path="res://scripts/wave_system.gd" id="3_w4k3p"]
+[ext_resource type="PackedScene" uid="uid://bqbsjpoyve2c6" path="res://scenes/pathfinding.tscn" id="4_kj23p"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_76dmx")
 
 [node name="GridSystem" type="Node2D" parent="."]
 script = ExtResource("2_u4k2b")
+
+[node name="Pathfinding" parent="." instance=ExtResource("4_kj23p")]
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(576, 324)
