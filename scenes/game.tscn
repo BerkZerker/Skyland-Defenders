@@ -1,0 +1,102 @@
+[gd_scene load_steps=4 format=3 uid="uid://b6x41q6c5q37x"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_76dmx"]
+[ext_resource type="Script" path="res://scripts/grid_system.gd" id="2_u4k2b"]
+[ext_resource type="Script" path="res://scripts/wave_system.gd" id="3_w4k3p"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_76dmx")
+
+[node name="GridSystem" type="Node2D" parent="."]
+script = ExtResource("2_u4k2b")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(576, 324)
+
+[node name="WaveSystem" type="Node2D" parent="."]
+script = ExtResource("3_w4k3p")
+
+[node name="SpawnPoints" type="Node2D" parent="WaveSystem"]
+
+[node name="SpawnPoint1" type="Marker2D" parent="WaveSystem/SpawnPoints"]
+position = Vector2(-32, 324)
+
+[node name="SpawnPoint2" type="Marker2D" parent="WaveSystem/SpawnPoints"]
+position = Vector2(1184, 324)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="TopPanel" type="Panel" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 64.0
+grow_horizontal = 2
+
+[node name="ResourceLabel" type="Label" parent="UI/TopPanel"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -13.0
+offset_right = 144.0
+offset_bottom = 13.0
+grow_vertical = 2
+text = "Resources: 100"
+vertical_alignment = 1
+
+[node name="WaveLabel" type="Label" parent="UI/TopPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -64.0
+offset_top = -13.0
+offset_right = 64.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Wave: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BottomPanel" type="Panel" parent="UI"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="PlaceDefenderButton" type="Button" parent="UI/BottomPanel"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -24.0
+offset_right = 176.0
+offset_bottom = 24.0
+grow_vertical = 2
+text = "Place Defender (50)"
+
+[node name="StartWaveButton" type="Button" parent="UI/BottomPanel"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -176.0
+offset_top = -24.0
+offset_right = -16.0
+offset_bottom = 24.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "Start Wave"
+
+[connection signal="pressed" from="UI/BottomPanel/PlaceDefenderButton" to="." method="start_defender_placement"]
+[connection signal="pressed" from="UI/BottomPanel/StartWaveButton" to="." method="start_wave"]

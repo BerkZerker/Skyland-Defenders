@@ -11,9 +11,27 @@ config_version=5
 [application]
 
 config/name="Skyland Defenders"
-config/features=PackedStringArray("4.3", "Mobile")
-config/icon="res://icon.svg"
+run/main_scene="res://scenes/game.tscn"
+config/features=PackedStringArray("4.3")
+
+[display]
+
+window/size/resizable=false
+
+[gd_project]
+
+config_version=5
+
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="defenders"
+2d_physics/layer_3="enemies"
+
+[physics]
+
+2d/default_gravity=0.0
 
 [rendering]
 
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
