@@ -15,10 +15,14 @@ Project is in active development of core gameplay systems.
   - Full grid drawing from 0,0
   - Placement validation
 - Enemy Movement System
-  - Direct movement towards nearest defender
-  - Target seeking behavior
+  - Enhanced linear movement towards nearest defender
+  - Periodic target updates to track closest defenders
+  - Visual path indicators for movement direction
+  - Target seeking behavior with distance tracking
   - Attack range detection
   - Damage system
+- Code Indentation Fixed in defender.gd
+- Code Indentation Fixed in defender.gd
 
 ## In Progress
 ### Defender Placement System

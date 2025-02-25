@@ -15,6 +15,10 @@ var is_placed: bool = false
 @onready var range_area: Area2D = $RangeArea
 
 func _ready() -> void:
+	# Add to defenders group
+	add_to_group("defenders")
+	print("Defender: Added to defenders group")
+	
 	# Set up the range area
 	var collision_shape = range_area.get_node("CollisionShape2D")
 	var circle_shape = collision_shape.shape as CircleShape2D
@@ -23,7 +27,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not is_placed:
 		return
-
+	
 	if current_target == null:
 		find_new_target()
 	elif can_attack:
@@ -33,24 +37,24 @@ func find_new_target() -> void:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var nearest_distance = INF
 	var nearest_enemy = null
-
+	
 	for enemy in enemies:
 		var distance = global_position.distance_to(enemy.global_position)
 		if distance <= attack_range and distance < nearest_distance:
 			nearest_distance = distance
 			nearest_enemy = enemy
-
+	
 	current_target = nearest_enemy
 
 func attack_target() -> void:
 	if current_target == null:
 		return
-
+	
 	can_attack = false
 	# Apply damage to target
 	if current_target.has_method("take_damage"):
 		current_target.take_damage(attack_damage)
-
+	
 	# Start cooldown timer
 	get_tree().create_timer(attack_cooldown).timeout.connect(
 		func(): can_attack = true

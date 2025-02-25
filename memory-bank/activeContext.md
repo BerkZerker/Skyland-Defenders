@@ -10,8 +10,10 @@ Implementing Phase 1: Core Gameplay Prototype (MVP)
     - All cells drawn as outlines, valid area filled
 - **Enemy Movement**
     - Implemented direct movement towards the closest defender
-    - Simplified to target-seeking without pathfinding
+    - Enhanced linear pathing with periodic target updates
+    - Added visual path indicators for movement direction
     - Enemies move freely regardless of grid cells
+- **Code Indentation Fixed**: Fixed indentation in `scripts/defender.gd` for better readability and code quality.
 
 ## Implementation Order
 1. **Defender Placement System** (Current Priority)

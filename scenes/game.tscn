@@ -7,11 +7,11 @@
 [node name="Game" type="Node2D"]
 script = ExtResource("1_76dmx")
 
-[node name="GridSystem" type="Node2D" parent="."]
-script = ExtResource("2_u4k2b")
-
 [node name="Camera2D" type="Camera2D" parent="."]
 anchor_mode = 0
+
+[node name="GridSystem" type="Node2D" parent="."]
+script = ExtResource("2_u4k2b")
 
 [node name="WaveSystem" type="Node2D" parent="."]
 script = ExtResource("3_w4k3p")
