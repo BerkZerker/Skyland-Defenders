@@ -17,7 +17,7 @@ config/features=PackedStringArray("4.3")
 [display]
 
 window/stretch/mode="viewport"
-window/stretch/aspect="expand"
+window/stretch/aspect="keep_height"
 
 [gd_project]
 

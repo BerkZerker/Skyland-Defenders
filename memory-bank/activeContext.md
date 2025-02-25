@@ -4,8 +4,14 @@
 Implementing Phase 1: Core Gameplay Prototype (MVP)
 
 ## Recently Completed
+- **Grid System Implementation**
+    - Grid starts from 0,0 with configurable size
+    - 6x6 valid placement area in center
+    - All cells drawn as outlines, valid area filled
 - **Enemy Movement**
-    - Implemented direct movement towards the closest defender.
+    - Implemented direct movement towards the closest defender
+    - Simplified to target-seeking without pathfinding
+    - Enemies move freely regardless of grid cells
 
 ## Implementation Order
 1. **Defender Placement System** (Current Priority)
@@ -39,28 +45,27 @@ Implementing Phase 1: Core Gameplay Prototype (MVP)
     - Health/wave indicators
 
 ## Active Decisions
-1. Using grid-based system for precise placement
-2.
+1. Using configurable grid system with clear valid/invalid areas
+2. Using direct enemy movement without pathfinding
 3. Using signal system for event handling
 4. Centralizing resource management
-5. Implementing periodic path recalculation for dynamic updates
 
 ## Current Considerations
 1. Grid size optimization for mobile
 2. Enemy spawn point placement
 3. Resource balance for initial prototype
 4. UI scaling for different devices
-5. Path recalculation frequency optimization
-6. Enemy movement smoothing and performance
+5. Enemy movement behavior tuning
+6. Grid visual clarity improvements
 
 ## Next Steps
-1. Set up basic grid system
-2. Implement defender placement logic
-3. Add placement validation
-4. Create basic defender entity
+1. Fine-tune defender placement preview
+2. Implement wave spawning system
+3. Add placement validation feedback
+4. Balance enemy movement speed
 
 ## Technical Notes
-- A* pathfinding implementation ensures efficient enemy movement
-- Grid system integration allows for precise path calculation
-- Path recalculation system handles dynamic obstacle changes
-- Enemy movement system includes smooth path following
+- Grid system now uses export variables for configuration
+- Enemy movement uses simple distance-based targeting
+- Grid displays full extent with valid placement area highlighted
+- Placement preview uses proper coordinate transformations

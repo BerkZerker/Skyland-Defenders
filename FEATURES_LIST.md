@@ -55,4 +55,3 @@ Implement the most basic tower defense mechanics with a single defender and enem
 5. Resource system
 6. Game loop (start, win/lose conditions)
 7. Basic UI elements
-
