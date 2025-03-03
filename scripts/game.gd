@@ -1,35 +1,51 @@
 extends Node2D
 
+# Signals
+signal wave_started(wave_number)
+signal wave_ended(wave_number)
+
 # Game state management
 var current_resources: int = 100
 var current_wave: int = 0
 var is_wave_active: bool = false
-var placing_defender: bool = false
-var defender_template: Node2D = null
+var game_over: bool = false
+var victory: bool = false
 
-# Preload defender scene
-@onready var defender_scene = preload("res://scenes/defender.tscn")
-@onready var grid_system = $GridSystem
+# Game settings
+@export var max_waves: int = 5  # Number of waves to survive for victory
+
+# Node references
+@onready var level = $Level
+@onready var grid_system = null  # Will be set in _ready()
 @onready var wave_system = $WaveSystem
-@onready var resource_label = $UI/TopPanel/ResourceLabel
-@onready var wave_label = $UI/TopPanel/WaveLabel
+@onready var ui_manager = $UIManager
+@onready var camera_controller = $CameraController
+@onready var defender_placement_manager = $DefenderPlacementManager
 
 func _ready() -> void:
-	# Clean up any existing defender template
-	if defender_template:
-		defender_template.queue_free()
-		defender_template = null
-		placing_defender = false
+	print("Game: _ready() called")
+	
+	# Get grid system from level
+	if level:
+		grid_system = level.get_grid_system()
+	else:
+		push_error("Game: Level node not found")
 	
 	# Verify wave system
 	if not wave_system:
 		push_error("Game: Wave system not found")
+	else:
+		# Connect to wave system signals
+		if not wave_system.resource_collected.is_connected(_on_resource_collected):
+			wave_system.connect("resource_collected", _on_resource_collected)
+		if not wave_system.wave_completed.is_connected(_on_wave_completed):
+			wave_system.connect("wave_completed", _on_wave_completed)
 	
 	# Connect to window resize signal
 	get_viewport().connect("size_changed", Callable(self, "_on_window_resize"))
 	
 	initialize_game()
-	update_ui()
+	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
 func _on_window_resize() -> void:
 	# No need to center camera anymore since we're using global coordinates
@@ -40,83 +56,49 @@ func initialize_game() -> void:
 	current_resources = 100
 	current_wave = 0
 	is_wave_active = false
-	update_ui()
+	game_over = false
+	victory = false
+	
+	# Reset camera position
+	camera_controller.reset_camera_position()
+	
+	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
 func _input(event: InputEvent) -> void:
 	# Handle both touch and mouse input
 	if event is InputEventScreenTouch:
 		handle_touch(event)
+	elif event is InputEventScreenDrag:
+		handle_camera_pan(event)
 	elif event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			# Simulate touch event with mouse
 			var touch_event = InputEventScreenTouch.new()
 			touch_event.position = get_viewport().get_mouse_position()
-			touch_event.pressed = event.pressed
+			touch_event.pressed = true
 			handle_touch(touch_event)
 	
 	# Update defender template position for mouse movement
-	elif event is InputEventMouseMotion and placing_defender and defender_template:
-		var mouse_pos = get_viewport().get_mouse_position()
-		var grid_pos = grid_system.get_grid_position(mouse_pos)
-		
-		# Get the world position for this grid cell
-		if grid_pos.x >= 0 and grid_pos.x < grid_system.VALID_GRID_SIZE.x and \
-		   grid_pos.y >= 0 and grid_pos.y < grid_system.VALID_GRID_SIZE.y:
-			var world_pos = grid_system.get_cell_position(grid_pos)
-			defender_template.position = world_pos
-			
-			# Update template color based on valid placement
-			if grid_system.is_cell_valid_for_placement(grid_pos):
-				defender_template.modulate = Color(0, 1, 0, 0.5)  # Semi-transparent green
-			else:
-				defender_template.modulate = Color(1, 0, 0, 0.5)  # Semi-transparent red
-		else:
-			# If the cursor is outside valid grid bounds
-			defender_template.modulate = Color(1, 0, 0, 0.5)  # Semi-transparent red
+	elif event is InputEventMouseMotion and defender_placement_manager.is_placing():
+		defender_placement_manager.update_template_position(get_viewport().get_mouse_position())
 
 func handle_touch(event: InputEventScreenTouch) -> void:
 	if event.pressed:
-		# If we're not placing a defender, start placement
-		if not placing_defender:
-			start_defender_placement()
-		# If we are placing, try to place at touch location
-		else:
-			try_place_defender(event.position)
+		# Only handle touch for placing a defender if we're already in placement mode
+		if defender_placement_manager.is_placing():
+			var cost = defender_placement_manager.try_place_defender(event.position, current_resources)
+			if cost > 0:
+				current_resources -= cost
+				ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
+func handle_camera_pan(event: InputEventScreenDrag) -> void:
+	# Only allow camera panning when not placing a defender
+	if not defender_placement_manager.is_placing():
+		camera_controller.handle_camera_pan(event)
+
+# This function is called directly from the PlaceDefenderButton in the scene
 func start_defender_placement() -> void:
-	if current_resources < 50:  # Defender cost
-		return
-	
-	# Clean up any existing template first
-	if defender_template:
-		defender_template.queue_free()
-		defender_template = null
-	
-	placing_defender = true
-	defender_template = defender_scene.instantiate()
-	defender_template.modulate = Color(0, 1, 0, 0.5)  # Start with green
-	add_child(defender_template)
-
-func try_place_defender(touch_position: Vector2) -> void:
-	if not defender_template:
-		return
-	
-	var grid_position = grid_system.get_grid_position(touch_position)
-	
-	if grid_system.is_cell_valid_for_placement(grid_position) and current_resources >= 50:
-		# Create actual defender
-		var defender = defender_scene.instantiate()
-		add_child(defender)
-		
-		if grid_system.place_defender(grid_position, defender):
-			current_resources -= 50
-			defender.is_placed = true
-			update_ui()
-	
-	# Clean up template whether placement was successful or not
-	defender_template.queue_free()
-	defender_template = null
-	placing_defender = false
+	defender_placement_manager.start_defender_placement(current_resources)
 
 func start_wave() -> void:
 	print("Game: Attempting to start wave")
@@ -128,27 +110,105 @@ func start_wave() -> void:
 	is_wave_active = true
 	print("Game: Starting wave " + str(current_wave))
 	emit_signal("wave_started", current_wave)
-	update_ui()
+	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
 func end_wave() -> void:
 	print("Game: Ending wave " + str(current_wave))
 	is_wave_active = false
 	emit_signal("wave_ended", current_wave)
+	
+	# Check for victory condition
+	if current_wave >= max_waves:
+		victory = true
+		game_over = true
+		print("Game: Victory achieved! All waves survived.")
+		ui_manager.show_victory_screen()
 
 func _on_resource_collected(amount: int) -> void:
+	if game_over:
+		return
+		
 	current_resources += amount
-	update_ui()
+	print("Game: Resources collected: " + str(amount) + ", total: " + str(current_resources))
+	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
-func _on_defender_placed(cost: int) -> void:
-	current_resources -= cost
-	update_ui()
+func _on_wave_completed(wave_number: int) -> void:
+	print("Game: Wave " + str(wave_number) + " completed")
+	
+	# Check for defenders
+	check_defenders()
 
-func update_ui() -> void:
-	if resource_label:
-		resource_label.text = "Resources: " + str(current_resources)
-	if wave_label:
-		wave_label.text = "Wave: " + str(current_wave)
+func check_defenders() -> void:
+	var defenders = get_tree().get_nodes_in_group("defenders")
+	
+	if defenders.size() == 0 and current_wave > 0:
+		game_over = true
+		victory = false
+		print("Game: Game over! All defenders destroyed.")
+		ui_manager.show_game_over_screen()
 
-# Signals
-signal wave_started(wave_number)
-signal wave_ended(wave_number)
+func _on_start_wave_button_pressed() -> void:
+	print("Game: Start wave button pressed")
+	if not is_wave_active and not game_over:
+		start_wave()
+
+func _on_pause_button_pressed() -> void:
+	print("Game: Pause button pressed")
+	var paused = get_tree().paused
+	get_tree().paused = !paused
+	print("Game: Toggling pause state from " + str(paused) + " to " + str(!paused))
+	
+	# Update the button text based on the current pause state
+	ui_manager.update_pause_button_text(get_tree().paused)
+
+func _on_restart_button_pressed() -> void:
+	print("Game: Restart button pressed")
+	
+	# Force unpause the game first
+	var was_paused = get_tree().paused
+	get_tree().paused = false
+	print("Game: Forced unpause during restart (was paused: " + str(was_paused) + ")")
+	
+	# Reset game state
+	initialize_game()
+	
+	# Clear all enemies
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	print("Game: Clearing " + str(enemies.size()) + " enemies")
+	for enemy in enemies:
+		enemy.queue_free()
+	
+	# Clear all defenders
+	var defenders = get_tree().get_nodes_in_group("defenders")
+	print("Game: Clearing " + str(defenders.size()) + " defenders")
+	for defender in defenders:
+		defender.queue_free()
+	
+	# Reset level
+	if level:
+		level.load_level_data()
+		print("Game: Level reset")
+	else:
+		print("Game: Level not found")
+	
+	# Hide game over and victory panels
+	ui_manager.hide_end_game_screens()
+	
+	# Make sure pause button is reset
+	ui_manager.update_pause_button_text(false)
+	
+	# Reset wave system if it exists
+	if wave_system:
+		wave_system.reset()
+		print("Game: Wave system reset")
+	else:
+		print("Game: Wave system not found")
+	
+	# Clean up any defender template
+	defender_placement_manager.cleanup_template()
+	
+	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
+	print("Game: Restart completed")
+
+func _on_reset_camera_button_pressed() -> void:
+	camera_controller.reset_camera_position()
