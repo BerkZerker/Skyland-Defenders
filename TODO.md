@@ -7,3 +7,6 @@ Add enemy pathfinding
 Make customizable debug drawing and settings file (attack radius, etc)
 Clean up export configs - remove web and add android export
 Get UI working and finish the game loop
+ 
+
+NOTE - use component system

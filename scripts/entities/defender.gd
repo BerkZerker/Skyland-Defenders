@@ -1,3 +1,4 @@
+class_name Defender
 extends Node2D
 
 # Defender properties

@@ -1,3 +1,4 @@
+class_name DefenderPlacementManager
 extends Node
 
 # Defender placement state

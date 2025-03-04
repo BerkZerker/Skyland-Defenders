@@ -1,3 +1,4 @@
+class_name Level
 extends Node2D
 
 # This script manages the level scene which contains the tilemap grid

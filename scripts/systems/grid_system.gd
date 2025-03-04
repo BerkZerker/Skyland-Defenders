@@ -6,17 +6,24 @@ extends TileMapLayer  # We're extending TileMapLayer directly
 signal defender_placed(grid_position)
 signal cell_cleared(grid_position)
 
-# Tile types - using the tile IDs provided by the user
-enum TileType {
+# Tile source IDs - using the tile IDs provided by the user in the TileSet
+enum TileSourceId {
 	VALID = 0,
 	INVALID = 1,
 	ENEMY_SPAWN = 2,
-	OCCUPIED = 3  # Used for tracking, not an actual tile
 }
 
-# Grid state - only track valid placement cells and occupied cells
-var valid_placement_cells: Array = []
-var occupied_cells: Dictionary = {}  # Maps grid positions to placed objects
+# Grid cell states - for tracking game state in the grid_state array
+enum GridState {
+	VALID_PLACEMENT = 0,
+	INVALID_PLACEMENT = 1,
+	OCCUPIED = 2
+}
+
+# Grid state - 2D array to track the state of each cell in the grid
+var grid_state = []  # Will be initialized as a 2D array
+var grid_bounds = Rect2i()  # To store the grid boundaries
+var grid_objects = {}  # Maps grid positions to placed objects
 
 func _ready() -> void:
 	# Add to grid_system group so enemies can find it
@@ -26,34 +33,65 @@ func _ready() -> void:
 	initialize_grid()
 
 func initialize_grid() -> void:
-	# Reset tracking arrays
-	valid_placement_cells.clear()
-	occupied_cells.clear()
+	# Reset tracking structures
+	grid_state.clear()
+	grid_objects.clear()
 	
 	# Get all cells from the tilemap using built-in TileMapLayer method
 	var used_cells = get_used_cells()
 	
-	# Process each cell to find valid placement cells
+	if used_cells.size() == 0:
+		print("Warning: No cells found in tilemap")
+		return
+	
+	# Find the bounds of the grid
+	var min_x = INF
+	var min_y = INF
+	var max_x = -INF
+	var max_y = -INF
+	
+	for cell_pos in used_cells:
+		min_x = min(min_x, cell_pos.x)
+		min_y = min(min_y, cell_pos.y)
+		max_x = max(max_x, cell_pos.x)
+		max_y = max(max_y, cell_pos.y)
+	
+	# Store the grid bounds
+	grid_bounds = Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+	
+	# Initialize the grid_state 2D array
+	for y in range(grid_bounds.size.y):
+		var row = []
+		for x in range(grid_bounds.size.x):
+			row.append(GridState.INVALID_PLACEMENT)  # Default to invalid
+		grid_state.append(row)
+	
+	# Populate the grid_state based on the tilemap data
 	for cell_pos in used_cells:
 		var source_id = get_cell_source_id(cell_pos)
+		var local_x = cell_pos.x - grid_bounds.position.x
+		var local_y = cell_pos.y - grid_bounds.position.y
 		
-		# Add valid placement cells to the array
-		if source_id == TileType.VALID:
-			valid_placement_cells.append(cell_pos)
+		# Set the grid state based on the source_id
+		if source_id == TileSourceId.VALID:
+			grid_state[local_y][local_x] = GridState.VALID_PLACEMENT
+		else:
+			grid_state[local_y][local_x] = GridState.INVALID_PLACEMENT
 
 func is_cell_valid_for_placement(cell: Vector2i) -> bool:
-	# Check if the cell exists in our tilemap and is a valid placement tile
-	if not is_cell_in_bounds(cell):
+	# Check if the cell is within the grid bounds
+	if not grid_bounds.has_point(cell):
 		return false
 	
-	# Check if the cell is a valid tile and not occupied
-	var source_id = get_cell_source_id(cell)
-	return source_id == TileType.VALID and not occupied_cells.has(cell)
+	# Convert to local coordinates within the grid_state array
+	var local_x = cell.x - grid_bounds.position.x
+	var local_y = cell.y - grid_bounds.position.y
+	
+	# Check if the cell is valid for placement
+	return grid_state[local_y][local_x] == GridState.VALID_PLACEMENT
 
 func is_cell_in_bounds(cell: Vector2i) -> bool:
-	# Check if the cell exists in our tilemap using built-in TileMapLayer method
-	var used_cells = get_used_cells()
-	return used_cells.has(cell)
+	return grid_bounds.has_point(cell)
 
 func get_cell_position(grid_position: Vector2i) -> Vector2:
 	# Use TileMapLayer's built-in method to convert grid position to world position
@@ -68,44 +106,58 @@ func place_defender(grid_position: Vector2i, defender_node: Node2D) -> bool:
 	if not is_cell_valid_for_placement(grid_position):
 		return false
 	
-	# Track the occupied cell and its object
-	occupied_cells[grid_position] = defender_node
+	# Convert to local coordinates within the grid_state array
+	var local_x = grid_position.x - grid_bounds.position.x
+	var local_y = grid_position.y - grid_bounds.position.y
+	
+	# Update the grid state to occupied
+	grid_state[local_y][local_x] = GridState.OCCUPIED
+	
+	# Track the object placed at this position
+	grid_objects[grid_position] = defender_node
 	
 	# Update defender position using the built-in method
 	defender_node.position = get_cell_position(grid_position)
-	
-	# Update valid placement cells
-	if valid_placement_cells.has(grid_position):
-		valid_placement_cells.erase(grid_position)
 	
 	emit_signal("defender_placed", grid_position)
 	return true
 
 func clear_cell(grid_position: Vector2i) -> void:
-	if not occupied_cells.has(grid_position):
+	if not grid_objects.has(grid_position):
 		return
 	
-	# Remove from occupied cells
-	occupied_cells.erase(grid_position)
+	# Remove from grid_objects
+	grid_objects.erase(grid_position)
+	
+	# Convert to local coordinates within the grid_state array
+	var local_x = grid_position.x - grid_bounds.position.x
+	var local_y = grid_position.y - grid_bounds.position.y
 	
 	# Check if this was originally a valid placement cell
 	var source_id = get_cell_source_id(grid_position)
-	if source_id == TileType.VALID:
-		# Add back to valid placement cells
-		if not valid_placement_cells.has(grid_position):
-			valid_placement_cells.append(grid_position)
+	if source_id == TileSourceId.VALID:
+		# Set back to valid placement
+		grid_state[local_y][local_x] = GridState.VALID_PLACEMENT
+	else:
+		# Set back to invalid placement
+		grid_state[local_y][local_x] = GridState.INVALID_PLACEMENT
 	
 	emit_signal("cell_cleared", grid_position)
 
 func get_cell_type(grid_position: Vector2i) -> int:
-	# If the cell is occupied, return OCCUPIED
-	if occupied_cells.has(grid_position):
-		return TileType.OCCUPIED
+	# Check if the cell is within the grid bounds
+	if not grid_bounds.has_point(grid_position):
+		return TileSourceId.INVALID
 	
-	# Otherwise, return the type based on the source_id using built-in method
-	var source_id = get_cell_source_id(grid_position)
-	if source_id >= 0 and source_id < TileType.size():
-		return source_id
+	# Convert to local coordinates within the grid_state array
+	var local_x = grid_position.x - grid_bounds.position.x
+	var local_y = grid_position.y - grid_bounds.position.y
 	
-	# Default to INVALID if the source_id is not recognized
-	return TileType.INVALID
+	# Return the appropriate type based on the grid state
+	match grid_state[local_y][local_x]:
+		GridState.OCCUPIED:
+			return TileSourceId.VALID  # Return VALID for occupied cells, as they were originally valid
+		GridState.VALID_PLACEMENT:
+			return TileSourceId.VALID
+		_:
+			return TileSourceId.INVALID
