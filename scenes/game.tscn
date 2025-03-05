@@ -1,11 +1,11 @@
 [gd_scene load_steps=7 format=3 uid="uid://b6x41q6c5q37x"]
 
-[ext_resource type="Script" path="res://scripts/game.gd" id="1_76dmx"]
+[ext_resource type="Script" uid="uid://bp2oa28j3wr0v" path="res://scripts/game.gd" id="1_76dmx"]
 [ext_resource type="PackedScene" uid="uid://dvkdlqxssmseq" path="res://scenes/level.tscn" id="2_bnqkl"]
-[ext_resource type="Script" path="res://scripts/systems/wave_system.gd" id="3_w4k3p"]
-[ext_resource type="Script" path="res://scripts/ui/ui_manager.gd" id="4_ixnqm"]
-[ext_resource type="Script" path="res://scripts/managers/camera_controller.gd" id="5_yvnkl"]
-[ext_resource type="Script" path="res://scripts/managers/defender_placement_manager.gd" id="6_aqnxs"]
+[ext_resource type="Script" uid="uid://d2et4dn5032mt" path="res://scripts/systems/wave_system.gd" id="3_w4k3p"]
+[ext_resource type="Script" uid="uid://c25ckjmbj66ff" path="res://scripts/ui/ui_manager.gd" id="4_ixnqm"]
+[ext_resource type="Script" uid="uid://dpfua4w6dqwoj" path="res://scripts/managers/camera_controller.gd" id="5_yvnkl"]
+[ext_resource type="Script" uid="uid://cu62o2frggr3q" path="res://scripts/managers/defender_placement_manager.gd" id="6_aqnxs"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_76dmx")

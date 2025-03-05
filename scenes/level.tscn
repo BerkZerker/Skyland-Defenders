@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=4 uid="uid://dvkdlqxssmseq"]
 
-[ext_resource type="Script" path="res://scripts/level.gd" id="1_a2xnm"]
-[ext_resource type="Script" path="res://scripts/systems/grid_system.gd" id="1_bnqkl"]
+[ext_resource type="Script" uid="uid://31nj6jjg5m0s" path="res://scripts/level.gd" id="1_a2xnm"]
+[ext_resource type="Script" uid="uid://bs8cq2kkpbov1" path="res://scripts/systems/grid_system.gd" id="1_bnqkl"]
 [ext_resource type="Texture2D" uid="uid://bhyxqlsnbt04k" path="res://assets/textures/valid-tile.png" id="2_r51st"]
 [ext_resource type="Texture2D" uid="uid://e43h2luop7n6" path="res://assets/textures/invalid-tile.png" id="3_qtwun"]
 [ext_resource type="Texture2D" uid="uid://ck21vjgny6lkp" path="res://assets/textures/enemy-spawn.png" id="3_t1tqp"]
