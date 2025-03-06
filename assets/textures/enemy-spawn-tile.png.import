@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ck21vjgny6lkp"
-path="res://.godot/imported/enemy-spawn.png-7b36345bfeb47d72757f35b017d6c210.ctex"
+uid="uid://crulo8cpw0ppc"
+path="res://.godot/imported/enemy-spawn-tile.png-e7a3c96fe1d1a3d625fe93624770cf8e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/enemy-spawn.png"
-dest_files=["res://.godot/imported/enemy-spawn.png-7b36345bfeb47d72757f35b017d6c210.ctex"]
+source_file="res://assets/textures/enemy-spawn-tile.png"
+dest_files=["res://.godot/imported/enemy-spawn-tile.png-e7a3c96fe1d1a3d625fe93624770cf8e.ctex"]
 
 [params]
 

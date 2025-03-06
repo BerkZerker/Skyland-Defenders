@@ -94,13 +94,32 @@ func is_cell_in_bounds(cell: Vector2i) -> bool:
 	return grid_bounds.has_point(cell)
 
 func get_cell_position(grid_position: Vector2i) -> Vector2:
-	# Use TileMapLayer's built-in method to convert grid position to world position
-	# map_to_local returns the top-left corner of the cell, so add half cell size to get center
-	return map_to_local(grid_position) + Vector2(tile_set.tile_size) / 2
+	# Get the tile size
+	var tile_size_vec = Vector2(tile_set.tile_size)
+	
+	# First get the local position (relative to the TileMap)
+	var local_pos = Vector2(
+		grid_position.x * tile_size_vec.x + tile_size_vec.x / 2,
+		grid_position.y * tile_size_vec.y + tile_size_vec.y / 2
+	)
+	
+	# Then convert to global position by applying the TileMap's transform
+	# Since we're extending TileMapLayer, we can use our own transform
+	return to_global(local_pos)
 
 func get_grid_position(world_position: Vector2) -> Vector2i:
-	# Use TileMapLayer's built-in method to convert world position to grid position
-	return local_to_map(world_position)
+	# First convert the world position to local position (relative to the TileMap)
+	# Since we're extending TileMapLayer, we can use our own transform
+	var local_pos = to_local(world_position)
+	
+	# Get the tile size
+	var tile_size_vec = Vector2(tile_set.tile_size)
+	
+	# Divide local position by tile size and floor to get grid position
+	return Vector2i(
+		int(local_pos.x / tile_size_vec.x),
+		int(local_pos.y / tile_size_vec.y)
+	)
 
 func place_defender(grid_position: Vector2i, defender_node: Node2D) -> bool:
 	if not is_cell_valid_for_placement(grid_position):
