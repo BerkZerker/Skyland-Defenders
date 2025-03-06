@@ -35,7 +35,7 @@ func start_defender_placement(current_resources: int) -> void:
 		get_tree().paused = false
 		print("DefenderPlacementManager: Unpaused game for defender placement")
 	
-	# Create new defender template
+	# Create new defender template but don't add to scene yet
 	placing_defender = true
 	
 	# Instantiate the defender scene
@@ -43,21 +43,27 @@ func start_defender_placement(current_resources: int) -> void:
 	defender_template = defender_scene.instantiate()
 	
 	if defender_template:
-		defender_template.modulate = Color(0, 1, 0, 0.5)  # Start with green
-		
-		# Position the template at the center of the grid initially
-		var center_pos = Vector2(300, 300)  # Center of the grid
-		defender_template.position = center_pos
-		
 		# Make sure attack radius is visible during placement
 		defender_template.show_attack_radius = true
 		defender_template.queue_redraw()
 		
-		game.add_child(defender_template)
-		print("DefenderPlacementManager: Defender template created and added to scene")
+		print("DefenderPlacementManager: Defender template created but not added to scene yet")
 	else:
 		print("DefenderPlacementManager: Failed to instantiate defender scene")
 		placing_defender = false
+
+func show_defender_template(touch_pos: Vector2) -> void:
+	if placing_defender and defender_template:
+		# Add to scene if not already added
+		if not defender_template.is_inside_tree():
+			game.add_child(defender_template)
+			print("DefenderPlacementManager: Defender template added to scene")
+		
+		# Make sure it's visible
+		defender_template.visible = true
+		
+		# Update position and appearance
+		update_template_position(touch_pos)
 
 func update_template_position(touch_pos: Vector2) -> void:
 	if placing_defender and defender_template:
@@ -73,9 +79,9 @@ func update_template_position(touch_pos: Vector2) -> void:
 		
 		# Update template color based on valid placement
 		if grid_system.is_cell_valid_for_placement(grid_pos):
-			defender_template.modulate = Color(0, 1, 0, 0.5)  # Semi-transparent green
+			defender_template.modulate = Color(1, 1, 1, 0.5)  # Semi-transparent original texture
 		else:
-			defender_template.modulate = Color(1, 0, 0, 0.5)  # Semi-transparent red
+			defender_template.modulate = Color(1, 0.3, 0.3, 0.5)  # Red-tinted semi-transparent texture
 
 func try_place_defender(touch_position: Vector2, current_resources: int) -> int:
 	if not defender_template:

@@ -71,15 +71,12 @@ func _input(event: InputEvent) -> void:
 		handle_touch(event)
 	elif event is InputEventScreenDrag:
 		handle_camera_pan(event)
-		# Update defender template position during drag
-		if defender_placement_manager.is_placing():
-			defender_placement_manager.update_template_position(event.position)
 
 func handle_touch(event: InputEventScreenTouch) -> void:
-	# For touch down (pressed), just update the template position
+	# For touch down (pressed), show the defender template
 	if event.pressed:
 		if defender_placement_manager.is_placing():
-			defender_placement_manager.update_template_position(event.position)
+			defender_placement_manager.show_defender_template(event.position)
 	# For touch up (released), try to place the defender
 	else:
 		# Only handle touch for placing a defender if we're already in placement mode
@@ -93,6 +90,9 @@ func handle_camera_pan(event: InputEventScreenDrag) -> void:
 	# Only allow camera panning when not placing a defender
 	if not defender_placement_manager.is_placing():
 		camera_controller.handle_camera_pan(event)
+	else:
+		# Update defender template position during drag
+		defender_placement_manager.update_template_position(event.position)
 
 # This function is called directly from the PlaceDefenderButton in the scene
 func start_defender_placement() -> void:
