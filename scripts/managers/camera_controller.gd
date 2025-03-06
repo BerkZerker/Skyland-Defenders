@@ -12,6 +12,30 @@ extends Node
 func _ready() -> void:
 	# Initialize camera position
 	reset_camera_position()
+	
+# Convert screen coordinates to world coordinates
+func screen_to_world_position(screen_position: Vector2) -> Vector2:
+	# Get the viewport transform and camera transform
+	var viewport_transform = get_viewport().get_canvas_transform()
+	var camera_transform = camera.get_global_transform()
+	
+	# Convert screen position to world position
+	var world_position = (screen_position - viewport_transform.origin) / viewport_transform.get_scale()
+	world_position += camera.position
+	
+	return world_position
+
+# Convert world coordinates to screen coordinates
+func world_to_screen_position(world_position: Vector2) -> Vector2:
+	# Get the viewport transform and camera transform
+	var viewport_transform = get_viewport().get_canvas_transform()
+	var camera_transform = camera.get_global_transform()
+	
+	# Convert world position to screen position
+	var screen_position = world_position - camera.position
+	screen_position = screen_position * viewport_transform.get_scale() + viewport_transform.origin
+	
+	return screen_position
 
 func handle_camera_pan(event: InputEventScreenDrag) -> void:
 	# Move camera in the opposite direction of the drag

@@ -66,25 +66,22 @@ func initialize_game() -> void:
 	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
 
 func _input(event: InputEvent) -> void:
-	# Handle both touch and mouse input
+	# Handle only touch input
 	if event is InputEventScreenTouch:
 		handle_touch(event)
 	elif event is InputEventScreenDrag:
 		handle_camera_pan(event)
-	elif event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# Simulate touch event with mouse
-			var touch_event = InputEventScreenTouch.new()
-			touch_event.position = get_viewport().get_mouse_position()
-			touch_event.pressed = true
-			handle_touch(touch_event)
-	
-	# Update defender template position for mouse movement
-	elif event is InputEventMouseMotion and defender_placement_manager.is_placing():
-		defender_placement_manager.update_template_position(get_viewport().get_mouse_position())
+		# Update defender template position during drag
+		if defender_placement_manager.is_placing():
+			defender_placement_manager.update_template_position(event.position)
 
 func handle_touch(event: InputEventScreenTouch) -> void:
+	# For touch down (pressed), just update the template position
 	if event.pressed:
+		if defender_placement_manager.is_placing():
+			defender_placement_manager.update_template_position(event.position)
+	# For touch up (released), try to place the defender
+	else:
 		# Only handle touch for placing a defender if we're already in placement mode
 		if defender_placement_manager.is_placing():
 			var cost = defender_placement_manager.try_place_defender(event.position, current_resources)

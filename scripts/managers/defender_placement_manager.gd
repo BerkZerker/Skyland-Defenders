@@ -9,6 +9,7 @@ var defender_template: Node2D = null
 @onready var defender_scene = preload("res://scenes/defender.tscn")
 @onready var grid_system = $"../Level/TileMapLayer"
 @onready var game = get_parent()
+@onready var camera_controller = $"../CameraController"
 
 func _ready() -> void:
 	# Clean up any existing defender template
@@ -58,13 +59,17 @@ func start_defender_placement(current_resources: int) -> void:
 		print("DefenderPlacementManager: Failed to instantiate defender scene")
 		placing_defender = false
 
-func update_template_position(mouse_pos: Vector2) -> void:
+func update_template_position(touch_pos: Vector2) -> void:
 	if placing_defender and defender_template:
-		var grid_pos = grid_system.get_grid_position(mouse_pos)
+		# Convert screen position to world position
+		var world_pos = camera_controller.screen_to_world_position(touch_pos)
 		
-		# Get the world position for this grid cell
-		var world_pos = grid_system.get_cell_position(grid_pos)
-		defender_template.position = world_pos
+		# Get the grid position from the world position
+		var grid_pos = grid_system.get_grid_position(world_pos)
+		
+		# Get the world position for this grid cell (centered)
+		var cell_pos = grid_system.get_cell_position(grid_pos)
+		defender_template.position = cell_pos
 		
 		# Update template color based on valid placement
 		if grid_system.is_cell_valid_for_placement(grid_pos):
@@ -77,8 +82,11 @@ func try_place_defender(touch_position: Vector2, current_resources: int) -> int:
 		print("DefenderPlacementManager: try_place_defender called but no defender template exists")
 		return 0
 	
-	print("DefenderPlacementManager: Attempting to place defender at " + str(touch_position))
-	var grid_position = grid_system.get_grid_position(touch_position)
+	# Convert screen position to world position
+	var world_position = camera_controller.screen_to_world_position(touch_position)
+	
+	print("DefenderPlacementManager: Attempting to place defender at " + str(touch_position) + " (world: " + str(world_position) + ")")
+	var grid_position = grid_system.get_grid_position(world_position)
 	var cost = 0
 	
 	if grid_system.is_cell_valid_for_placement(grid_position) and current_resources >= 50:
