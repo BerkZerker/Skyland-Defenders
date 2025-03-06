@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Skyland Defenders"
 run/main_scene="res://scenes/game.tscn"
-config/features=PackedStringArray("4.3")
+config/features=PackedStringArray("4.4")
 
 [display]
 

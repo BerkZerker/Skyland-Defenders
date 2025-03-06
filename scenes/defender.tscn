@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cj6vr2x8nucgv"]
 
-[ext_resource type="Script" path="res://scripts/entities/defender.gd" id="1_rqm4w"]
+[ext_resource type="Script" uid="uid://b84u2wcocdt1w" path="res://scripts/entities/defender.gd" id="1_rqm4w"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 200.0
