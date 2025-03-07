@@ -1,4 +1,3 @@
-class_name DefenderPlacementManager
 extends Node
 
 # Defender placement state
@@ -6,8 +5,23 @@ var placing_defender: bool = false
 var defender_template: Node2D = null
 
 # Preload defender scene
-@onready var defender_scene = preload("res://scenes/defender.tscn")
-@onready var grid_system = $"../Level/TileMapLayer"
+@onready var defender_scene = preload("res://scenes/entities/defender.tscn")
+# Handle both possible paths for TileMapLayer
+@onready var grid_system = get_grid_system()
+
+func get_grid_system() -> Node:
+	var direct_path = get_node_or_null("../Level/TileMapLayer")
+	var nested_path = get_node_or_null("../Level/NavigationRegion2D/TileMapLayer")
+	
+	if direct_path:
+		print("DefenderPlacementManager: Found TileMapLayer as direct child of Level")
+		return direct_path
+	elif nested_path:
+		print("DefenderPlacementManager: Found TileMapLayer as child of NavigationRegion2D")
+		return nested_path
+	else:
+		push_error("DefenderPlacementManager: Could not find TileMapLayer node")
+		return null
 @onready var game = get_parent()
 @onready var camera_controller = $"../CameraController"
 
@@ -99,6 +113,10 @@ func try_place_defender(touch_position: Vector2, current_resources: int) -> int:
 		# Create actual defender
 		var defender = defender_scene.instantiate()
 		game.add_child(defender)
+		
+		# Set up the grid system for the component defender
+		if defender.has_method("setup_grid_system"):
+			defender.setup_grid_system(grid_system)
 		
 		if grid_system.place_defender(grid_position, defender):
 			cost = 50

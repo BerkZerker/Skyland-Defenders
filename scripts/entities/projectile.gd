@@ -1,35 +1,32 @@
-class_name Projectile
-extends Node2D
+extends "res://scripts/entities/entity.gd"
 
-# Projectile properties
-var speed: float = 300.0
-var damage: float = 0.0
-var target: Node2D = null
-var source: Node2D = null
+# Preload component scripts
+const VisualComponentScript = preload("res://scripts/components/visual_component.gd")
+const ProjectileComponentScript = preload("res://scripts/components/projectile_component.gd")
 
-# The visual is now defined in the scene tree
+# Component references for quick access
+var visual_component = null
+var projectile_component = null
 
-func _process(delta: float) -> void:
-	if target == null or not is_instance_valid(target):
-		# Target no longer exists, destroy projectile
-		queue_free()
-		return
+func _ready() -> void:
+	# Add visual component
+	visual_component = VisualComponentScript.new(self)
+	visual_component.color = Color(0.7, 0, 1, 1)  # Purple for projectiles
+	visual_component.size = Vector2(8, 8)
+	add_component("visual", visual_component)
 	
-	# Move towards target
-	var direction = (target.global_position - global_position).normalized()
-	global_position += direction * speed * delta
+	# Add projectile component
+	projectile_component = ProjectileComponentScript.new(self)
+	projectile_component.speed = 300.0
+	add_component("projectile", projectile_component)
 	
-	# Check if we've reached the target
-	if global_position.distance_to(target.global_position) < 10:
-		hit_target()
+	# Connect signals
+	projectile_component.connect("hit_target", Callable(self, "_on_hit_target"))
 
-func hit_target() -> void:
-	if target and target.has_method("take_damage"):
-		target.take_damage(damage)
-	queue_free()
+func initialize(source_node: Node, target_node: Node, damage_amount: float) -> void:
+	if projectile_component:
+		projectile_component.setup(source_node, target_node, damage_amount)
 
-func initialize(source_node: Node2D, target_node: Node2D, damage_amount: float) -> void:
-	source = source_node
-	target = target_node
-	damage = damage_amount
-	global_position = source.global_position
+func _on_hit_target(target: Node) -> void:
+	# Handle hit target event if needed
+	pass

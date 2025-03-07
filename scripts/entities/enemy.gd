@@ -1,156 +1,117 @@
-class_name Enemy
-extends CharacterBody2D
+extends "res://scripts/entities/entity.gd"
 
-# Signals
+# Preload component scripts
+const HealthComponentScript = preload("res://scripts/components/health_component.gd")
+const AttackComponentScript = preload("res://scripts/components/attack_component.gd")
+const MovementComponentScript = preload("res://scripts/components/movement_component.gd")
+const VisualComponentScript = preload("res://scripts/components/visual_component.gd")
+const CollisionComponentScript = preload("res://scripts/components/collision_component.gd")
+const HealthBarComponentScript = preload("res://scripts/components/health_bar_component.gd")
+const PathfindingComponentScript = preload("res://scripts/components/pathfinding_component.gd")
+
 signal enemy_died(resource_value)
 
-# Enemy properties
-@export var movement_speed: float = 100.0
-@export var max_health: float = 100.0
-@export var attack_damage: float = 10.0
-@export var attack_range: float = 40.0
-@export var attack_cooldown: float = 1.0
-@export var target_update_interval: float = 1.0  # How often to update target
 @export var resource_value: int = 25  # Resources gained when enemy is defeated
 
-# State management
-var current_health: float = max_health
-var can_attack: bool = true
-var current_target: Node2D = null
-var target_update_timer: float = 0.0
-
-# Movement and pathing
-var path_to_target: Vector2 = Vector2.ZERO
-var last_target_pos: Vector2 = Vector2.ZERO
-
-# Node references
-@onready var attack_area: Area2D = $AttackArea
-@onready var visual: ColorRect = $ColorRect
-@onready var path_line: Line2D = $PathLine if has_node("PathLine") else null
-@onready var health_bar = $HealthBar
+# Component references for quick access
+var health_component = null
+var attack_component = null
+var targeting_component = null
+var movement_component = null
+var visual_component = null
+var collision_component = null
+var health_bar_component = null
+var pathfinding_component = null
 
 func _ready() -> void:
-	current_health = max_health
+	# Add health component
+	health_component = HealthComponentScript.new(self)
+	health_component.max_health = 100.0
+	add_component("health", health_component)
+	
+	# Add attack component
+	attack_component = AttackComponentScript.new(self)
+	attack_component.attack_damage = 10.0
+	attack_component.attack_cooldown = 1.0
+	attack_component.attack_range = 40.0
+	add_component("attack", attack_component)
+	
+	# Add targeting component
+	targeting_component = load("res://scripts/components/targeting_component.gd").new(self)
+	targeting_component.target_group = "defenders"
+	add_component("targeting", targeting_component)
+	
+	# Add movement component
+	movement_component = MovementComponentScript.new(self)
+	movement_component.movement_speed = 100.0
+	add_component("movement", movement_component)
+	
+	# Add visual component
+	visual_component = VisualComponentScript.new(self)
+	visual_component.color = Color(1, 0, 0, 1)  # Red for enemies
+	visual_component.size = Vector2(32, 32)
+	add_component("visual", visual_component)
+	
+	# Add collision component
+	collision_component = CollisionComponentScript.new(self)
+	collision_component.collision_radius = 16.0
+	collision_component.collision_layer = 4  # Enemy layer
+	collision_component.collision_mask = 2   # Defender layer
+	add_component("collision", collision_component)
+	
+	# Add health bar component
+	health_bar_component = HealthBarComponentScript.new(self)
+	add_component("health_bar", health_bar_component)
+	
+	# Add pathfinding component
+	pathfinding_component = PathfindingComponentScript.new(self)
+	add_component("pathfinding", pathfinding_component)
+	
+	# Connect signals
+	health_component.connect("died", Callable(self, "_on_died"))
+	targeting_component.connect("target_acquired", Callable(self, "_on_target_acquired"))
+	targeting_component.connect("target_lost", Callable(self, "_on_target_lost"))
+	collision_component.connect("area_entered", Callable(self, "_on_area_entered"))
+	collision_component.connect("area_exited", Callable(self, "_on_area_exited"))
+	
+	# Add to enemies group
 	add_to_group("enemies")
-	
-	# Initialize path visualization if it doesn't exist
-	if not path_line and Engine.is_editor_hint() == false:
-		path_line = Line2D.new()
-		path_line.name = "PathLine"
-		path_line.width = 2.0
-		path_line.default_color = Color(1, 0, 0, 0.4)  # Semi-transparent red
-		path_line.z_index = -1  # Draw behind the enemy
-		add_child(path_line)
-	
-	# Initialize health bar
-	update_health_bar()
-	
-	# Find defenders right away
-	find_closest_defender()
-	
-	# In the TileMap version, we don't have a grid_system group or defender_placed signal
-	# Instead, we'll just rely on periodic target updates
 
-func _physics_process(delta: float) -> void:
-	# Update target periodically to always move toward closest defender
-	target_update_timer += delta
-	if target_update_timer >= target_update_interval:
-		target_update_timer = 0
-		find_closest_defender()
-	
-	if current_target and is_instance_valid(current_target):
-		# Check if we're in attack range
-		var distance_to_target = position.distance_to(current_target.position)
+func _process(delta: float) -> void:
+	# Handle movement if we have a target
+	if targeting_component.current_target and is_instance_valid(targeting_component.current_target):
+		var distance = global_position.distance_to(targeting_component.current_target.global_position)
 		
-		if distance_to_target > attack_range:
-			# Update path if target moved significantly
-			if last_target_pos.distance_to(current_target.position) > 20:
-				update_path_to_target()
-			
-			# Move towards target using linear movement
-			var direction = (current_target.position - position).normalized()
-			velocity = direction * movement_speed
-			move_and_slide()
-			
-			# Update path visualization
-			update_path_visualization()
-		elif can_attack:
-			attack_target()
-	else:
-		find_closest_defender()
+		if distance > attack_component.attack_range:
+			# Move towards target
+			movement_component.move_towards(targeting_component.current_target.global_position, delta)
+		elif attack_component.can_attack:
+			# Attack target
+			attack_component.attack(targeting_component.current_target)
 
-func find_closest_defender() -> void:
-	var defenders = get_tree().get_nodes_in_group("defenders")
-	
-	if defenders.size() > 0:
-		var closest_defender = null
-		var closest_distance = INF
-		
-		for defender in defenders:
-			var distance = position.distance_to(defender.position)
-			if distance < closest_distance:
-				closest_distance = distance
-				closest_defender = defender
-		
-		current_target = closest_defender
-		
-		if current_target:
-			last_target_pos = current_target.position
-			update_path_to_target()
-
-func update_path_to_target() -> void:
-	if current_target and is_instance_valid(current_target):
-		# For basic linear movement, the path is just a straight line
-		path_to_target = current_target.position
-		last_target_pos = current_target.position
-
-func update_path_visualization() -> void:
-	if path_line and current_target and is_instance_valid(current_target):
-		path_line.clear_points()
-		path_line.add_point(Vector2.ZERO)  # Local origin point
-		path_line.add_point(current_target.position - position)  # Direction to target
-
-func take_damage(amount: float) -> void:
-	current_health -= amount
-	update_health_bar()
-	
-	if current_health <= 0:
-		die()
-
-func update_health_bar() -> void:
-	if health_bar:
-		var health_percent = current_health / max_health
-		health_bar.value = health_percent * 100
-
-func die() -> void:
+func _on_died() -> void:
 	emit_signal("enemy_died", resource_value)
 	queue_free()
 
-func attack_target() -> void:
-	if not current_target or not is_instance_valid(current_target):
-		return
-	
-	can_attack = false
-	# Apply damage to target
-	if current_target.has_method("take_damage"):
-		current_target.take_damage(attack_damage)
-	
-	# Start cooldown timer
-	get_tree().create_timer(attack_cooldown).timeout.connect(
-		func(): can_attack = true
-	)
+func _on_target_acquired(target: Node) -> void:
+	# Target acquired, handled in _process
+	pass
 
-func _on_attack_area_area_entered(area: Area2D) -> void:
-	if area.get_parent().is_in_group("defenders"):
-		current_target = area.get_parent()
-		update_path_to_target()
+func _on_target_lost() -> void:
+	# Target lost, find a new one
+	targeting_component.find_new_target()
 
-func _on_attack_area_area_exited(area: Area2D) -> void:
-	if area.get_parent() and is_instance_valid(area.get_parent()) and area.get_parent() == current_target:
-		current_target = null
-		find_closest_defender()
-		
-# Called when a new defender is placed
-func _on_defender_placed(_grid_position) -> void:
-	# Immediately recalculate path to ensure we target the closest defender
-	find_closest_defender()
+func _on_area_entered(area: Area2D) -> void:
+	# Check if this is a defender area
+	if area.get_parent() and area.get_parent().is_in_group("defenders"):
+		targeting_component.current_target = area.get_parent()
+
+func _on_area_exited(area: Area2D) -> void:
+	# Check if this was our current target
+	if area.get_parent() and area.get_parent() == targeting_component.current_target:
+		targeting_component.current_target = null
+		targeting_component.find_new_target()
+
+func take_damage(amount: float) -> void:
+	if health_component:
+		health_component.take_damage(amount)

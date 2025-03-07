@@ -1,4 +1,3 @@
-class_name Game
 extends Node2D
 
 # Signals
@@ -63,7 +62,19 @@ func initialize_game() -> void:
 	# Reset camera position
 	camera_controller.reset_camera_position()
 	
+	# Initialize level and navigation
+	if level:
+		level.load_level_data()
+		
+		# Connect to the navigation_ready signal if not already connected
+		if not level.navigation_ready.is_connected(_on_navigation_ready):
+			level.connect("navigation_ready", Callable(self, "_on_navigation_ready"))
+	
 	ui_manager.update_ui(current_resources, current_wave, max_waves, is_wave_active, game_over)
+
+# Called when the navigation mesh is ready
+func _on_navigation_ready() -> void:
+	print("Game: Navigation is ready")
 
 func _input(event: InputEvent) -> void:
 	# Handle only touch input

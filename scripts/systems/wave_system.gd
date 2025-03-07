@@ -1,4 +1,3 @@
-class_name WaveSystem
 extends Node2D
 
 # Signals
@@ -8,7 +7,7 @@ signal resource_collected(amount)
 # Wave properties
 @export var enemies_per_wave: int = 5
 @export var spawn_interval: float = 2.0
-@export var enemy_scene: PackedScene = preload("res://scenes/enemy.tscn")
+@export var enemy_scene: PackedScene = preload("res://scenes/entities/enemy.tscn")
 
 # Wave state
 var current_wave: int = 0
@@ -44,8 +43,42 @@ func start_wave() -> void:
 	enemies_spawned = 0
 	enemies_remaining = enemies_per_wave + (current_wave - 1) * 2
 	is_wave_active = true
+	
+	# Check if navigation is ready before spawning enemies
+	var level = _find_level_node()
+	if level and level.has_signal("navigation_ready"):
+		if not level.navigation_ready.is_connected(_on_navigation_ready_for_wave):
+			level.connect("navigation_ready", Callable(self, "_on_navigation_ready_for_wave"))
 		
-	# Start spawning enemies
+		# Check if navigation is already ready
+		if level.get_navigation_region() and level.get_navigation_region().navigation_polygon:
+			print("WaveSystem: Navigation already ready, starting wave")
+			spawn_next_enemy()
+		else:
+			print("WaveSystem: Waiting for navigation to be ready before spawning enemies")
+	else:
+		# If we can't find the level or it doesn't have the signal, just start spawning
+		print("WaveSystem: Could not find Level node with navigation_ready signal, starting wave anyway")
+		spawn_next_enemy()
+
+func _find_level_node() -> Node:
+	# Find the level node in the scene tree
+	var current_node = self
+	while current_node:
+		if current_node.get_parent() and current_node.get_parent().has_method("get_navigation_region"):
+			return current_node.get_parent()
+		current_node = current_node.get_parent()
+	
+	# If we couldn't find it by traversing up, try to find it by name
+	var root = get_tree().root
+	if root.has_node("Game/Level"):
+		return root.get_node("Game/Level")
+	
+	print("WaveSystem: Could not find Level node")
+	return null
+
+func _on_navigation_ready_for_wave() -> void:
+	print("WaveSystem: Navigation is ready, starting to spawn enemies")
 	spawn_next_enemy()
 
 func spawn_next_enemy() -> void:

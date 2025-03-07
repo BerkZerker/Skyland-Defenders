@@ -15,6 +15,7 @@ In Skyland Defenders, you must strategically place defenders on floating islands
 - **Wave-Based Progression**: Face increasingly difficult waves of enemies
 - **Grid-Based Placement**: Intuitive grid system for placing defenders
 - **Victory and Defeat Conditions**: Win by surviving all waves or lose if all your defenders are destroyed
+- **Component-Based Architecture**: Entities are built using a flexible component system for better code organization and reusability
 
 ## How to Play
 
@@ -41,9 +42,63 @@ Skyland Defenders is currently in Phase 1 of development, focusing on implementi
 
 ### Project Structure
 
-- `scenes/`: Contains all game scenes (defender, enemy, game, projectile)
-- `scripts/`: Contains all GDScript files for game logic
-- `assets/`: Contains graphics, sounds, and other resources (to be added)
+- `scenes/`: Game scenes
+  - `scenes/entities/`: Entity scenes (defender, enemy, projectile)
+  - `scenes/levels/`: Level scenes
+  - `scenes/ui/`: UI-related scenes
+- `scripts/`: GDScript files
+  - `scripts/components/`: Component system base classes and standard components
+  - `scripts/entities/`: Entity scripts that use the component system
+  - `scripts/managers/`: Manager scripts for different game systems
+  - `scripts/systems/`: Core game systems
+  - `scripts/ui/`: UI-related scripts
+- `assets/`: Graphics, sounds, and other resources
+
+### Key Files
+- `scenes/game.tscn`: Main game scene
+- `scenes/levels/level.tscn`: Level scene with navigation
+- `scripts/game.gd`: Main game logic
+- `scripts/components/entity.gd`: Base class for all entities
+- `scripts/components/component.gd`: Base class for all components
+
+### Component Architecture
+
+Skyland Defenders uses a component-based architecture where game entities are composed of smaller, reusable components. This architecture follows these core principles:
+
+1. **Composition over Inheritance**: Build entities by composing multiple components rather than using deep inheritance hierarchies.
+2. **Single Responsibility**: Each component has a single responsibility.
+3. **Loose Coupling**: Components communicate through signals or well-defined interfaces.
+4. **Reusability**: Components are designed to be reused across different entity types.
+
+#### Standard Components
+
+- **HealthComponent**: Manages health, damage, and death
+- **AttackComponent**: Handles attack logic, damage, and cooldowns
+- **TargetingComponent**: Finds and tracks targets
+- **MovementComponent**: Handles movement logic
+- **VisualComponent**: Manages visual representation
+- **CollisionComponent**: Handles collision detection
+- **PlacementComponent**: Manages grid-based placement
+- **ProjectileComponent**: Handles projectile behavior
+- **PathfindingComponent**: Handles pathfinding for entities
+- **HealthBarComponent**: Manages health bar visualization
+
+#### Component Communication
+
+Components can communicate in several ways:
+
+1. **Direct References**: Components can access other components through the entity's `get_component()` method.
+2. **Signals**: Components can emit signals that other components or the entity can connect to.
+3. **Entity Mediation**: The entity can mediate communication between components.
+
+See [TODO.md](TODO.md) for the current development roadmap and [PROJECT_STATUS.md](PROJECT_STATUS.md) for the current project status.
+
+## Debugging Tips
+
+### Common Issues
+- If entities aren't appearing, check if they're being added to the correct parent node
+- If components aren't working, verify they're being properly initialized and added to the entity
+- If signals aren't firing, ensure they're properly connected
 
 ## Contributing
 

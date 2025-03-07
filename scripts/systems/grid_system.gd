@@ -1,5 +1,5 @@
 @tool
-class_name TilemapGridSystem
+class_name LevelTilemapGridSystem
 extends TileMapLayer  # We're extending TileMapLayer directly
 
 # Signals
@@ -8,9 +8,9 @@ signal cell_cleared(grid_position)
 
 # Tile source IDs - using the tile IDs provided by the user in the TileSet
 enum TileSourceId {
-	VALID = 0,
-	INVALID = 1,
-	ENEMY_SPAWN = 2,
+	VALID = 0,  # ID 0 = grass (valid for placement)
+	INVALID = 1,  # ID 1 = wall (invalid for placement)
+	ENEMY_SPAWN = 2,  # ID 2 = enemy spawn
 }
 
 # Grid cell states - for tracking game state in the grid_state array

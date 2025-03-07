@@ -1,183 +1,134 @@
-class_name Defender
-extends Node2D
+extends "res://scripts/entities/entity.gd"
 
-# Defender properties
-@export var attack_range: float = 200.0
-@export var show_attack_radius: bool = false
-@export var selectable: bool = true  # Whether this defender can be selected
-@export var attack_damage: float = 25.0  # Buffed from 10.0 to 25.0
-@export var attack_cooldown: float = 1.0
+# Preload component scripts
+const HealthComponentScript = preload("res://scripts/components/health_component.gd")
+const AttackComponentScript = preload("res://scripts/components/attack_component.gd")
+const VisualComponentScript = preload("res://scripts/components/visual_component.gd")
+const CollisionComponentScript = preload("res://scripts/components/collision_component.gd")
+const PlacementComponentScript = preload("res://scripts/components/placement_component.gd")
+const HealthBarComponentScript = preload("res://scripts/components/health_bar_component.gd")
+
 @export var defender_cost: int = 50
-@export var max_health: float = 100.0
-
-# Attack radius visual properties
-@export var radius_color: Color = Color(1, 0, 0, 0.2)  # Semi-transparent red
-@export var radius_border_color: Color = Color(1, 0, 0, 0.5)  # More opaque red for border
-@export var radius_border_width: float = 2.0
-
-# Projectile reference
-@onready var projectile_scene = preload("res://scenes/projectile.tscn")
-
-# State management
-var current_target: Node2D = null
-var can_attack: bool = true
+@export var show_attack_radius: bool = false
 var is_placed: bool = false
-var current_health: float = max_health
 
-# Node references
-@onready var range_area: Area2D = $RangeArea
-@onready var health_bar = $HealthBar
+# Component references for quick access
+var health_component = null
+var attack_component = null
+var targeting_component = null
+var visual_component = null
+var collision_component = null
+var placement_component = null
+var health_bar_component = null
 
 func _ready() -> void:
-	# Set up the range area
-	var collision_shape = range_area.get_node("CollisionShape2D")
-	var circle_shape = collision_shape.shape as CircleShape2D
-	circle_shape.radius = attack_range
+	# Add health component
+	health_component = HealthComponentScript.new(self)
+	health_component.max_health = 100.0
+	add_component("health", health_component)
 	
-	# Initialize health
-	current_health = max_health
+	# Add attack component
+	attack_component = AttackComponentScript.new(self)
+	attack_component.attack_damage = 25.0
+	attack_component.attack_cooldown = 1.0
+	attack_component.attack_range = 200.0
+	add_component("attack", attack_component)
 	
-	# Default setup as a template (not placed)
-	if health_bar:
-		health_bar.visible = false
+	# Add targeting component
+	targeting_component = load("res://scripts/components/targeting_component.gd").new(self)
+	targeting_component.target_group = "enemies"
+	add_component("targeting", targeting_component)
 	
-	if range_area:
-		range_area.monitoring = false
-		range_area.monitorable = false
+	# Add visual component
+	visual_component = VisualComponentScript.new(self)
+	visual_component.color = Color(0, 0, 1, 1)  # Blue for defenders
+	visual_component.size = Vector2(32, 32)
+	add_component("visual", visual_component)
 	
-	# Show attack radius for template, hide for placed defenders by default
-	show_attack_radius = !is_placed
+	# Add collision component
+	collision_component = CollisionComponentScript.new(self)
+	collision_component.collision_radius = 16.0
+	collision_component.collision_layer = 2  # Defender layer
+	collision_component.collision_mask = 4   # Enemy layer
+	add_component("collision", collision_component)
+	
+	# Add placement component
+	placement_component = PlacementComponentScript.new(self)
+	placement_component.cost = defender_cost
+	placement_component.show_placement_radius = true
+	add_component("placement", placement_component)
+	
+	# Add health bar component
+	health_bar_component = HealthBarComponentScript.new(self)
+	add_component("health_bar", health_bar_component)
+	
+	# Connect signals
+	health_component.connect("died", Callable(self, "_on_died"))
+	targeting_component.connect("target_acquired", Callable(self, "_on_target_acquired"))
+	attack_component.connect("attack_performed", Callable(self, "_on_attack_performed"))
+	collision_component.connect("area_entered", Callable(self, "_on_area_entered"))
+	collision_component.connect("area_exited", Callable(self, "_on_area_exited"))
+	placement_component.connect("placed", Callable(self, "_on_placed"))
+	
+	# Setup based on placement status
+	if not is_placed:
+		show_attack_radius = true
+	
+	# Initialize visual elements
 	queue_redraw()
 
-# Call this method when a defender is actually placed on the grid
 func setup_as_placed_defender() -> void:
 	is_placed = true
-	
-	# Add to defenders group
 	add_to_group("defenders")
-	print("Defender: Added to defenders group")
 	
-	# Show health bar and update it
-	if health_bar:
-		health_bar.visible = true
-		update_health_bar()
+	# Update placement component
+	if placement_component:
+		placement_component.is_placed = true
 	
-	# Enable range area collision
-	if range_area:
-		range_area.monitoring = true
-		range_area.monitorable = true
-	
-	# Hide attack radius by default when placed
+	# Hide attack radius
 	show_attack_radius = false
 	queue_redraw()
 
-func _process(_delta: float) -> void:
-	# Skip processing for template defenders
-	if not is_placed:
-		return
-	
-	# Only actual placed defenders should look for targets and attack
-	if current_target == null:
-		find_new_target()
-	elif can_attack:
-		attack_target()
+# Set up the grid system for the placement component
+func setup_grid_system(grid_sys) -> void:
+	if placement_component:
+		placement_component.setup_with_grid_system(grid_sys)
 
-# Connect to input events on the RangeArea for click detection
-func _on_range_area_input_event(_viewport, event, _shape_idx) -> void:
-	# Handle click events on the defender
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if is_placed and selectable:
-			toggle_attack_radius()
-
-func find_new_target() -> void:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest_distance = INF
-	var nearest_enemy = null
-	
-	for enemy in enemies:
-		var distance = global_position.distance_to(enemy.global_position)
-		if distance <= attack_range and distance < nearest_distance:
-			nearest_distance = distance
-			nearest_enemy = enemy
-	
-	current_target = nearest_enemy
-
-func attack_target() -> void:
-	if current_target == null:
-		return
-	
-	can_attack = false
-	
-	# Create projectile
-	var projectile = projectile_scene.instantiate()
-	get_parent().add_child(projectile)
-	projectile.initialize(self, current_target, attack_damage)
-	
-	# Start cooldown timer
-	get_tree().create_timer(attack_cooldown).timeout.connect(
-		func(): can_attack = true
-	)
-
-func _on_range_area_area_entered(area: Area2D) -> void:
-	# Only actual placed defenders should detect enemies
-	if not is_placed:
-		return
-		
-	if area.is_in_group("enemies") and current_target == null:
-		current_target = area.get_parent()
-
-func take_damage(amount: float) -> void:
-	# Only actual placed defenders should take damage
-	if not is_placed:
-		return
-		
-	current_health -= amount
-	update_health_bar()
-	
-	if current_health <= 0:
-		die()
-
-func die() -> void:
-	# In the TileMap version, we don't need to clear cells
-	# Just remove from scene
+func _on_died() -> void:
 	queue_free()
 
-func update_health_bar() -> void:
-	if health_bar:
-		var health_percent = current_health / max_health
-		health_bar.value = health_percent * 100
+func _on_target_acquired(target: Node) -> void:
+	if attack_component and is_placed:
+		attack_component.attack(target)
 
-# Draw the attack radius
+func _on_attack_performed(target: Node) -> void:
+	# Create projectile
+	var projectile_scene = load("res://scenes/entities/projectile.tscn")
+	var projectile = projectile_scene.instantiate()
+	get_parent().add_child(projectile)
+	
+	# Initialize projectile
+	if projectile.has_method("initialize"):
+		projectile.initialize(self, target, attack_component.attack_damage)
+
+func _on_area_entered(area: Area2D) -> void:
+	# Handle area entered if needed
+	pass
+
+func _on_area_exited(area: Area2D) -> void:
+	# Handle area exited if needed
+	pass
+
+func _on_placed(grid_position: Vector2i) -> void:
+	# Handle placement if needed
+	pass
+
 func _draw() -> void:
-	if show_attack_radius:
-		# Draw filled circle for attack range
-		draw_circle(Vector2.ZERO, attack_range, radius_color)
+	if show_attack_radius and attack_component:
+		var radius = attack_component.attack_range
 		
-		# Draw circle outline for better visibility
-		draw_arc(Vector2.ZERO, attack_range, 0, TAU, 64, radius_border_color, radius_border_width)
-
-# Toggle attack radius visibility
-func toggle_attack_radius() -> void:
-	show_attack_radius = !show_attack_radius
-	queue_redraw()
-
-# Setter for attack_range that updates the visualization
-func set_attack_range(value: float) -> void:
-	attack_range = value
-	
-	# Update collision shape
-	if range_area:
-		var collision_shape = range_area.get_node("CollisionShape2D")
-		var circle_shape = collision_shape.shape as CircleShape2D
-		circle_shape.radius = attack_range
-	
-	# Update visual radius
-	queue_redraw()
-
-func _on_range_area_area_exited(area: Area2D) -> void:
-	# Only actual placed defenders should track enemies
-	if not is_placed:
-		return
+		# Draw filled circle
+		draw_circle(Vector2.ZERO, radius, Color(1, 0, 0, 0.2))
 		
-	if area.get_parent() == current_target:
-		current_target = null
+		# Draw circle outline
+		draw_arc(Vector2.ZERO, radius, 0, TAU, 64, Color(1, 0, 0, 0.5), 2.0)
