@@ -3,8 +3,9 @@ extends Node2D
 # This script manages the level scene which contains the tilemap grid
 # In the future, this can be expanded to load custom tilemap data
 
-# Reference to the tilemap grid system
-@onready var grid_system = $NavigationRegion2D/TileMapLayer
+# References to the tilemaps
+@onready var world_tilemap = $NavigationRegion2D/WorldTileMap
+@onready var entity_tilemap = $EntityTileMap
 @onready var navigation_region = $NavigationRegion2D
 
 # Signal to indicate when navigation is ready
@@ -13,9 +14,11 @@ signal navigation_ready
 func _ready() -> void:
 	print("Level: _ready() called")
 	
-	# Verify grid system
-	if not grid_system:
-		push_error("Level: TileMapLayer not found")
+	# Verify tilemaps
+	if not world_tilemap:
+		push_error("Level: WorldTileMap not found")
+	if not entity_tilemap:
+		push_error("Level: EntityTileMap not found")
 	
 	# Create NavigationRegion2D if it doesn't exist
 	if not navigation_region:
@@ -27,9 +30,25 @@ func _ready() -> void:
 	# We'll manually emit the navigation_ready signal after baking the navigation mesh
 	# No need to connect to a signal from NavigationRegion2D
 
-# Function to get the grid system
+# Function to get the world tilemap (combines ground and wall functionality)
+func get_world_tilemap():
+	return world_tilemap
+
+# Function to get the ground tilemap (for backward compatibility)
+func get_ground_tilemap():
+	return world_tilemap
+
+# Function to get the wall tilemap (for backward compatibility)
+func get_wall_tilemap():
+	return world_tilemap
+
+# Function to get the entity tilemap (for entity tracking)
+func get_entity_tilemap():
+	return entity_tilemap
+
+# Function to get the grid system (for backward compatibility)
 func get_grid_system():
-	return grid_system
+	return world_tilemap
 
 # Function to get the navigation region
 func get_navigation_region():
@@ -40,10 +59,10 @@ func load_level_data(level_data = null):
 	print("Level: Loading level data")
 	
 	# Initialize the grid
-	if grid_system:
-		grid_system.initialize_grid()
+	if world_tilemap and world_tilemap.has_method("initialize_grid"):
+		world_tilemap.initialize_grid()
 	else:
-		push_error("Level: Cannot load level data - TileMapLayer not found")
+		push_error("Level: Cannot load level data - WorldTileMap not found or missing initialize_grid method")
 	
 	# Emit signal that navigation is ready
 	# We're no longer generating the navigation mesh at runtime

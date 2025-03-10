@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/entities/entity.gd"
 
 # Preload component scripts

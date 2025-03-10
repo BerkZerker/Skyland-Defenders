@@ -18,6 +18,9 @@ func _init(entity_parent):
 	navigation_agent.path_desired_distance = 20.0
 	navigation_agent.target_desired_distance = 20.0
 	navigation_agent.path_max_distance = 100.0
+	
+	# Set avoidance mask to avoid walls
+	navigation_agent.avoidance_mask = 2  # Match the wall tilemap's collision layer
 
 func initialize() -> void:
 	# Connect to navigation agent signals

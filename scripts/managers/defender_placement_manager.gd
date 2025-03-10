@@ -6,26 +6,35 @@ var defender_template: Node2D = null
 
 # Preload defender scene
 @onready var defender_scene = preload("res://scenes/entities/defender.tscn")
-# Handle both possible paths for TileMapLayer
-@onready var grid_system = get_grid_system()
+# Grid system reference - will be set in _ready()
+var grid_system = null
 
 func get_grid_system() -> Node:
-	var direct_path = get_node_or_null("../Level/TileMapLayer")
-	var nested_path = get_node_or_null("../Level/NavigationRegion2D/TileMapLayer")
+	var level = get_node_or_null("../Level")
 	
-	if direct_path:
-		print("DefenderPlacementManager: Found TileMapLayer as direct child of Level")
-		return direct_path
-	elif nested_path:
-		print("DefenderPlacementManager: Found TileMapLayer as child of NavigationRegion2D")
-		return nested_path
+	if level and level.has_method("get_grid_system"):
+		print("DefenderPlacementManager: Using Level.get_grid_system()")
+		return level.get_grid_system()
 	else:
-		push_error("DefenderPlacementManager: Could not find TileMapLayer node")
-		return null
+		# Fallback to direct node paths for backward compatibility
+		var world_tilemap = get_node_or_null("../Level/NavigationRegion2D/GroundTileMap")
+		
+		if world_tilemap:
+			print("DefenderPlacementManager: Found GroundTileMap as child of NavigationRegion2D")
+			return world_tilemap
+		else:
+			push_error("DefenderPlacementManager: Could not find GroundTileMap node")
+			return null
 @onready var game = get_parent()
 @onready var camera_controller = $"../CameraController"
 
 func _ready() -> void:
+	# Initialize grid system
+	grid_system = get_grid_system()
+	
+	if not grid_system:
+		push_error("DefenderPlacementManager: Failed to get grid system in _ready()")
+	
 	# Clean up any existing defender template
 	if defender_template:
 		defender_template.queue_free()
@@ -80,7 +89,7 @@ func show_defender_template(touch_pos: Vector2) -> void:
 		update_template_position(touch_pos)
 
 func update_template_position(touch_pos: Vector2) -> void:
-	if placing_defender and defender_template:
+	if placing_defender and defender_template and grid_system:
 		# Convert screen position to world position
 		var world_pos = camera_controller.screen_to_world_position(touch_pos)
 		
@@ -96,10 +105,17 @@ func update_template_position(touch_pos: Vector2) -> void:
 			defender_template.modulate = Color(1, 1, 1, 0.5)  # Semi-transparent original texture
 		else:
 			defender_template.modulate = Color(1, 0.3, 0.3, 0.5)  # Red-tinted semi-transparent texture
+	elif placing_defender and defender_template:
+		# If grid_system is null, make the template red to indicate invalid placement
+		defender_template.modulate = Color(1, 0.3, 0.3, 0.5)  # Red-tinted semi-transparent texture
 
 func try_place_defender(touch_position: Vector2, current_resources: int) -> int:
 	if not defender_template:
 		print("DefenderPlacementManager: try_place_defender called but no defender template exists")
+		return 0
+	
+	if not grid_system:
+		print("DefenderPlacementManager: try_place_defender called but grid_system is null")
 		return 0
 	
 	# Convert screen position to world position
