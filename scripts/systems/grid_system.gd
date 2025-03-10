@@ -1,5 +1,4 @@
 @tool
-class_name LevelTilemapGridSystem
 extends TileMapLayer  # We're extending TileMapLayer directly
 
 # Signals
