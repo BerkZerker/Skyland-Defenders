@@ -4,7 +4,7 @@ extends Node2D
 # In the future, this can be expanded to load custom tilemap data
 
 # References to the tilemaps
-@onready var world_tilemap = $NavigationRegion2D/WorldTileMap
+@onready var world_tilemap = $NavigationRegion2D/GroundTileMap
 @onready var entity_tilemap = $EntityTileMap
 @onready var navigation_region = $NavigationRegion2D
 
@@ -16,7 +16,7 @@ func _ready() -> void:
 	
 	# Verify tilemaps
 	if not world_tilemap:
-		push_error("Level: WorldTileMap not found")
+		push_error("Level: GroundTileMap not found")
 	if not entity_tilemap:
 		push_error("Level: EntityTileMap not found")
 	
@@ -62,7 +62,7 @@ func load_level_data(level_data = null):
 	if world_tilemap and world_tilemap.has_method("initialize_grid"):
 		world_tilemap.initialize_grid()
 	else:
-		push_error("Level: Cannot load level data - WorldTileMap not found or missing initialize_grid method")
+		push_error("Level: Cannot load level data - GroundTileMap not found or missing initialize_grid method")
 	
 	# Emit signal that navigation is ready
 	# We're no longer generating the navigation mesh at runtime
